@@ -1900,7 +1900,8 @@ static void sock_def_error_report(struct sock *sk)
 	sk_wake_async(sk, SOCK_WAKE_IO, POLL_ERR);
 	rcu_read_unlock();
 }
-
+// sock回调 #sk_data_ready
+// sock事件->xx_xx_do_recv-> xx
 static void sock_def_readable(struct sock *sk, int len)
 {
 	struct socket_wq *wq;

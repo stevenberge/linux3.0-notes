@@ -1543,7 +1543,7 @@ struct block_device_operations;
  * all file operations except setlease can be called without
  * the big kernel lock held in all filesystems.
  */
-struct file_operations {
+struct file_operations {// f_op: file hooks/slots #fop_poll
 	struct module *owner;
 	loff_t (*llseek) (struct file *, loff_t, int);
 	ssize_t (*read) (struct file *, char __user *, size_t, loff_t *);

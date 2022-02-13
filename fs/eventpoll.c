@@ -202,7 +202,7 @@ struct eppoll_entry {
 	 * Wait queue item that will be linked to the target file wait
 	 * queue head.
 	 */
-	wait_queue_t wait;
+	wait_queue_t wait;//  link到clientfd.private_data(即sock).sk_sleep这个wq, #fop_poll
 
 	/* The wait queue head that linked the "wait" wait queue item */
 	wait_queue_head_t *whead;
@@ -292,6 +292,7 @@ static inline int ep_is_linked(struct list_head *p)
 
 /* Get the "struct epitem" from a wait queue pointer */
 static inline struct epitem *ep_item_from_wait(wait_queue_t *p)
+// p从wait_queue_t类型转换成eppoll_entry，取出base(ep) #sk_data_ready
 {
 	return container_of(p, struct eppoll_entry, wait)->base;
 }
@@ -809,6 +810,8 @@ static struct epitem *ep_find(struct eventpoll *ep, struct file *file, int fd)
  * mechanism. It is called by the stored file descriptors when they
  * have events to report.
  */
+//ep提供的sock事件回调，#sk_data_ready
+//回调注册见 #fop_poll
 static int ep_poll_callback(wait_queue_t *wait, unsigned mode, int sync, void *key)
 {
 	int pwake = 0;
@@ -877,7 +880,8 @@ out_unlock:
  * This is the callback that is used to add our wait queue to the
  * target file wakeup lists.
  */
-static void ep_ptable_queue_proc(struct file *file, wait_queue_head_t *whead,
+static void ep_ptable_queue_proc(struct file *file, wait_queue_head_t *whead, // 注册ep回调到clientfd，#fop_poll
+		//whead = (clientfd->private_data 即sock)->sk_sleep
 				 poll_table *pt)
 {
 	struct epitem *epi = ep_item_from_epqueue(pt);
@@ -945,7 +949,7 @@ static int ep_insert(struct eventpoll *ep, struct epoll_event *event,
 
 	/* Initialize the poll table using the queue callback */
 	epq.epi = epi;
-	init_poll_funcptr(&epq.pt, ep_ptable_queue_proc);
+	init_poll_funcptr(&epq.pt, ep_ptable_queue_proc);//&epq.pt->qproc = ep_ptable_queue_proc, 见注解@fop_poll
 
 	/*
 	 * Attach the item to the poll hooks and get current event bits.
@@ -954,7 +958,7 @@ static int ep_insert(struct eventpoll *ep, struct epoll_event *event,
 	 * this operation completes, the poll callback can start hitting
 	 * the new item.
 	 */
-	revents = tfile->f_op->poll(tfile, &epq.pt);
+	revents = tfile->f_op->poll(tfile, &epq.pt);//注册ep回调到clientfd，#fop_poll
 
 	/*
 	 * We have to check if something went wrong during the poll wait queue

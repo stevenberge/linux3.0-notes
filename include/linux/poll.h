@@ -44,6 +44,7 @@ static inline void poll_wait(struct file * filp, wait_queue_head_t * wait_addres
 }
 
 static inline void init_poll_funcptr(poll_table *pt, poll_queue_proc qproc)
+//定义poll_table.qproc=@ep_ptable_queue_proc，#fop_poll
 {
 	pt->qproc = qproc;
 	pt->key   = ~0UL; /* all events enabled */

@@ -1551,6 +1551,33 @@ static inline bool wq_has_sleeper(struct socket_wq *wq)
  *
  * See the comments in the wq_has_sleeper function.
  */
+ /*
+  * #fop_poll
+  * 注解：clientfd注册回调到ep
+	tfile->f_op->poll = sock_poll(struct file *file, poll_table *wait)
+	{
+		sock = file->private_data;
+		return sock->ops->poll(file, sock, wait);
+	}
+
+	sock->ops->poll = tcp_poll(struct file *file, struct socket *sock, poll_table *wait)
+	{
+		struct sock *sk = sock->sk;
+		sock_poll_wait(file, sk_sleep(sk), wait);
+	}
+	sock_poll_wait={
+		// epq.pt->qproc = ep_ptable_queue_proc
+		poll_wait(file, sk.sk_sleep, epq.pt)
+	}
+	ep_ptable_queue_proc={
+		struct eppoll_entry *pwq;
+		//&pwq->wait->func=ep_poll_callback
+		init_waitqueue_func_entry(&pwq->wait, ep_poll_callback);
+		//link pwq to epi和sk.sk_sleep
+		add_wait_queue(whead, &pwq->wait); // whead=sk.sk_sleep
+		list_add_tail(&pwq->llink, &epi->pwqlist);
+	}
+  */
 static inline void sock_poll_wait(struct file *filp,
 		wait_queue_head_t *wait_address, poll_table *p)
 {
